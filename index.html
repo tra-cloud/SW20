@@ -1,43 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>3D Particle Form Animation</title>
     <style>
-        form{
-        display: flex;
-        justify-content: center ;
-        }
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      .controls {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+      canvas {
+        position: absolute;
+      }
+      svg {
+        position: absolute;
+        display: none;
+      }
     </style>
-</head>
-<body>
-    <form>
-        <fieldset style="width:10px;">
-            <legend style="text-align: center;">Hello World</legend>
-            Username : <input type="text" name="user" placeholder="enter username"><br><br>
-        Password : <input type="password" name="password" placeholder="enter password"><br><br>
-        Phone : <input type="number" name="phone" placeholder="enter phone"><br><br>
-        <input type="submit">
-        Date : <input type="date" ><br><br>
-        Gender : Male <input type="radio" name="radio">
-        Famale <input type="radio" name="radio"><br><br>
-        Skill : MIS <input type="checkbox" name=""  value="1" checked>
-         Desing <input type="checkbox" name="" value="2">
-         ACC <input type="checkbox" name="" value="3">
-         Group : <select name="" id=""> 
-            <option value="1">SW1</option>
-            <option value="2" selected>SW20 </option>
-            <option value="3">SW3</option>
-         </select>  
-         <br><br>
-         <textarea rows="1" cols="3" ></textarea>
-         <input type="submit" name="#" value="Save">
-         <input type="reset" name="#" value="clear">
-         <input type="file">
-        </fieldset>
-        
-    </form>
 
-</body>
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  </head>
+
+  <body>
+    <!-- SVG Path (Form Shape) -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 552">
+      <path
+        id="shapePath"
+        d="M300 520 L100 300 
+         A150 150 0 1 1 300 200
+         A150 150 0 1 1 500 300
+         Z"
+      />
+    </svg>
+
+    <script>
+      console.clear();
+
+      /* SETUP */
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        5000
+      );
+      camera.position.z = 500;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      /* CONTROLS */
+      const controlsWebGL = new THREE.OrbitControls(
+        camera,
+        renderer.domElement
+      );
+
+      /* PARTICLES */
+      const tl = gsap.timeline({ repeat: -1, yoyo: true });
+
+      const path = document.querySelector("#shapePath");
+      const length = path.getTotalLength();
+      const vertices = [];
+
+      for (let i = 0; i < length; i += 0.1) {
+        const point = path.getPointAtLength(i);
+        const vector = new THREE.Vector3(point.x, -point.y, 0);
+
+        // Add random spread
+        vector.x += (Math.random() - 0.5) * 30;
+        vector.y += (Math.random() - 0.5) * 30;
+        vector.z += (Math.random() - 0.5) * 70;
+        vertices.push(vector);
+
+        // Animate from center
+        tl.from(
+          vector,
+          {
+            x: 600 / 2,
+            y: -552 / 2,
+            z: 0,
+            ease: "power2.inOut",
+            duration: gsap.utils.random(2, 5),
+          },
+          i * 0.002
+        );
+      }
+
+      const geometry = new THREE.BufferGeometry().setFromPoints(vertices);
+      const material = new THREE.PointsMaterial({
+        color: 0xee5282,
+        blending: THREE.AdditiveBlending,
+        size: 3,
+      });
+      const particles = new THREE.Points(geometry, material);
+
+      particles.position.x -= 600 / 2;
+      particles.position.y += 552 / 2;
+      scene.add(particles);
+
+      // Gentle rotation
+      gsap.fromTo(
+        scene.rotation,
+        { y: -0.2 },
+        {
+          y: 0.2,
+          repeat: -1,
+          yoyo: true,
+          ease: "power2.inOut",
+          duration: 3,
+        }
+      );
+
+      /* RENDER */
+      function render() {
+        requestAnimationFrame(render);
+        geometry.setFromPoints(vertices);
+        renderer.render(scene, camera);
+      }
+      render();
+
+      /* RESIZE */
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
 </html>
